@@ -1,0 +1,15 @@
+[package]
+name = "wkr-file"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+wkr-common = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+object_store = "0.5.2"
+tempdir = "0.3.7"
+wapc-codec = { workspace = true }

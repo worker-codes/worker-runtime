@@ -1,0 +1,14 @@
+[package]
+name = "wkr-server"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+wasmtime = { workspace = true }
+serde = { workspace = true }
+hyper = { version = "0.14", features = ["full"] }
+routerify = "3.0.0"
+thiserror = { workspace = true }
+

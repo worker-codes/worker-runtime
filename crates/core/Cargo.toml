@@ -1,0 +1,14 @@
+[package]
+name = "wkr-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+wapc-codec = { workspace = true }
+wkr-runtime = { workspace = true }
+wkr-common = { workspace = true }
+serde_bytes = { workspace = true }

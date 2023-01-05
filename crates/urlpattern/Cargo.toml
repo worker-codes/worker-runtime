@@ -1,0 +1,9 @@
+[package]
+name = "wkr-urlpattern"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+urlpattern = "0.2.0"

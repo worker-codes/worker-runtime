@@ -1,0 +1,10 @@
+[package]
+name = "wkr-regexp"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+wasmtime = { workspace = true }
+thiserror = { workspace = true }
+
