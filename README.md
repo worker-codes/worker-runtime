@@ -1,10 +1,17 @@
-The Wkr runtime is an open source WASM environment built to run Edge Applications. It gives developers powerful caching, content modification, and routing tools.
+# Worker Cloud Platform
 
-The runtime is based on WASM. There are built in APIs for manipulating HTML and Image content, low level caching, and HTTP requests/responses. When possible, we use WhatWG standards (like `fetch`, `Request`, `Response`, `Cache`, `ReadableStream`).
+Worker Cloud is an open-source platform that provides a set of APIs and tools for building and deploying web and mobile applications. It aims to make it easier for developers to create and manage the backend infrastructure for their applications, such as databases, user management, storage, and more.
 
-You can [use it locally](#hello-world) for development and testing, and [deploy it to Wkr's fleet](#deployment) of edge servers for production use.
+Worker Cloud includes a range of features, including:
 
+* A set of APIs for building web and mobile applications
+* A user management system for authentication and authorization
+* A database for storing and querying data
+* A file storage system for storing and serving files
+* A serverless function platform for running custom logic
+* A hosting platform for deploying and hosting applications
 
+Worker Code is built on top of modern technologies such as Docker, Kubernetes, and WebAssembly (WASM) and can be run on-premises or in the cloud. It is designed to be easy to use and to allow developers to focus on building their applications rather than worrying about the underlying infrastructure.
 ## Installation
 
 If you have rust (cargo) installed, you can build and install the wkr runtime with:
