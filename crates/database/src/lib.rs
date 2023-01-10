@@ -1,7 +1,7 @@
 pub mod database;
-use database::{connected_to_database, execute, query, ExecuteResult, QueryResult};
+use database::{connected_to_database, execute, query};
 use quaint::single::Quaint;
-use wkr_common::{resources::{ResourceTable, Resource}, errors::Error};
+use wkr_common::{resources::{ResourceTable, Resource}};
 use std::{sync::{Arc}, borrow::Cow};
 use serde::{Deserialize, Serialize};
 use wapc_codec::messagepack::{deserialize, serialize};
@@ -15,6 +15,7 @@ struct ExecuteOptions{
 struct ExecuteRequest {
     rid: u32,
     query: String,
+    #[serde(with = "serde_bytes")]
     args: Option<Vec<u8>>,
     options: ExecuteOptions,
 }
@@ -34,7 +35,6 @@ struct ClientResponse {
     rid: u32,
 }
 
-// struct DatabaseResource(Arc<Mutex<ZoboxFile>>);
 struct DatabaseResource(Quaint);
 
 impl Resource for DatabaseResource {
@@ -54,9 +54,7 @@ pub async fn process_database_ops(
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
     match (binding, namespace, operation) {
         ("database", "connection", "open") => {
-            println!("database connection open_______________________________________________________");
-            let config: Config = deserialize(payload).unwrap();
-            println!("database connection open2222_______________________________________________________");
+            let config: Config = deserialize(payload)?;
 
             // let url = format!("mysql://{}:{}@{}:{}/{}", config.username.unwrap(), config.password.unwrap(), config.host.unwrap(), config.port.unwrap(), config.database.unwrap());
             let conn = connected_to_database(config.url).await?;
@@ -73,7 +71,7 @@ pub async fn process_database_ops(
             let mut table = resource_table.lock().await;
             let mut payload = payload;
             let rid = rmp::decode::read_u32(&mut payload)?;
-            table.close(rid);
+            table.close(rid)?;
 
             Ok(vec![])
         }
@@ -82,20 +80,15 @@ pub async fn process_database_ops(
             let request: ExecuteRequest = deserialize(payload)?;
             let  rid = request.rid;
 
-            println!("{:?}", request);
-            println!("123_______________________________________________________");
-
             let table = resource_table.lock().await;      
-            let conn = table.get::<DatabaseResource>(rid).unwrap();
+            let conn = table.get::<DatabaseResource>(rid)?;
 
             let conn = &conn.0;
             let query_sql = request.query;
             let args = request.args.unwrap_or(vec![]);
-            let result = query(conn, &query_sql, args).await.unwrap();
-            println!("4_______________________________________________________");
-            println!("{:?}", result);
-            let response = serialize(&result).unwrap();
-            println!("5_______________________________________________________");
+            let result = query(conn, &query_sql, args).await?;
+            
+            let response = serialize(&result)?;
             Ok(response)
         }
 
@@ -103,17 +96,14 @@ pub async fn process_database_ops(
             let request: ExecuteRequest = deserialize(payload)?;
             let  rid = request.rid;
 
-            println!("{:?}", request);
-            println!("123_______________________________________________________");
-
             let table = resource_table.lock().await;    
-            let conn = table.get::<DatabaseResource>(rid).unwrap();
+            let conn = table.get::<DatabaseResource>(rid)?;
             let conn = &conn.0;
             let query_sql = request.query;
             let args = request.args.unwrap_or(vec![]);
-            let result = execute(conn, &query_sql, args).await.unwrap();
+            let result = execute(conn, &query_sql, args).await?;
 
-            let response = serialize(&result).unwrap();
+            let response = serialize(&result)?;
 
             Ok(response)
         },

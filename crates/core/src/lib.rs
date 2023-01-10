@@ -39,8 +39,8 @@ pub async fn create_function_engine(path: &str) -> Result<Environment> {
                 ],
             // map_dirs: vec![],
             env_vars: vec![("POSTGRES".to_string(), "user:password".to_string())],
-            preopened_dirs: vec!["/home/dallen/Codes/wasmtest/wasi".to_string()],
-            // preopened_dirs: vec![],
+            // preopened_dirs: vec!["/home/dallen/Codes/wasmtest/wasi".to_string()],
+            preopened_dirs: vec![],
         })
         .build()
         .expect("Cannot create WebAssemblyEngineProvider");

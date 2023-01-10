@@ -12,6 +12,9 @@ Worker Cloud includes a range of features, including:
 * A hosting platform for deploying and hosting applications
 
 Worker Code is built on top of modern technologies such as Docker, Kubernetes, and WebAssembly (WASM) and can be run on-premises or in the cloud. It is designed to be easy to use and to allow developers to focus on building their applications rather than worrying about the underlying infrastructure.
+
+## Runtime
+Once initialized with a WebAssembly intepreter and a wasm binary, the runtime and library can start executing functions in the wasm guest. The host and guest operate over the waPC communication protocol to satisfy bindings for compiled languages. This protocol takes an operation name and input data, serializes it, and calls the receiving waPC method in the wasm guest.
 ## Installation
 
 If you have rust (cargo) installed, you can build and install the wkr runtime with:

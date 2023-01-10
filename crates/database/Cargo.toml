@@ -11,4 +11,6 @@ serde = { workspace = true }
 wapc-codec = { workspace = true }
 wkr-common = { workspace = true }
 tokio = { workspace = true }
+# bytes = { workspace = true }
+serde_bytes = "0.11.8"
 rmp = "0.8.11"
