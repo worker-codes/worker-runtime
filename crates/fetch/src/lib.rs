@@ -1,7 +1,7 @@
 mod fetch;
 
 use anyhow::Error;
-use fetch::{FetchRequest, op_fetch};
+use fetch::{FetchRequest, op_fetch, op_fetch_send, op_fetch_read_body, FetchReadBodyReturn, FetchReadBody, FetchWriteBody, op_fetch_write_body};
 use wkr_common::resources::ResourceTable;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -19,6 +19,7 @@ pub async fn process_ops(
         ("fetch", "init", _) => {
             let state = resource_table.lock().await;
             let fetch_args: FetchRequest = deserialize(payload).unwrap();
+            println!("fetch_args: {:?}", fetch_args );
             let resp = op_fetch(state, fetch_args).await.unwrap();
             let fetch_response = serialize(&resp).unwrap();
 
@@ -26,24 +27,24 @@ pub async fn process_ops(
         }
         ("fetch", "send", _) => {
             let state = resource_table.lock().await;
-            let fetch_args: FetchRequest = deserialize(payload).unwrap();
-            let resp = op_fetch(state, fetch_args).await.unwrap();
+            let fetch_args: u32 = deserialize(payload).unwrap();
+            let resp = op_fetch_send(state, fetch_args).await.unwrap();
             let fetch_response = serialize(&resp).unwrap();
 
             return Ok(fetch_response);
         }
         ("fetch", "read_body", _) => {
             let state = resource_table.lock().await;
-            let fetch_args: FetchRequest = deserialize(payload).unwrap();
-            let resp = op_fetch(state, fetch_args).await.unwrap();
-            let fetch_response = serialize(&resp).unwrap();
+            let fetch_args: FetchReadBody = deserialize(payload).unwrap();
+            let fetch_response = op_fetch_read_body(state, fetch_args).await.unwrap();
+            let fetch_response = serialize(&fetch_response).unwrap();
 
             return Ok(fetch_response);
         }
         ("fetch", "write_body", _) => {
             let state = resource_table.lock().await;
-            let fetch_args: FetchRequest = deserialize(payload).unwrap();
-            let resp = op_fetch(state, fetch_args).await.unwrap();
+            let fetch_args: FetchWriteBody = deserialize(payload).unwrap();
+            let resp = op_fetch_write_body(state, fetch_args).await.unwrap();
             let fetch_response = serialize(&resp).unwrap();
 
             return Ok(fetch_response);

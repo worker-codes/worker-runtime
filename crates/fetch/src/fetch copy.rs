@@ -153,14 +153,6 @@ impl Resource for FetchRequestResource {
   }
 }
 
-struct StringResource(String);
-  
-  impl Resource for StringResource {
-    fn name(&self) -> Cow<str> {
-      "fetchRequest".into()
-    }
-  }
-
 // struct FetchCancelHandle(Arc<CancelHandle>);
 
 // impl Resource for FetchCancelHandle {
@@ -197,7 +189,6 @@ pub async fn op_fetch(
                 request = request.body(Body::wrap_stream(ReceiverStream::new(rx)));
 
                 let request_body_rid = resource_table.add(FetchRequestBodyResource2(tx));
-                println!("request_body_rid: {}", request_body_rid);
                 // let request_body_rid =
                 //   resource_table.add(FetchRequestBodyResource {
                 //     body: AsyncRefCell::new(tx),
@@ -261,15 +252,11 @@ pub async fn op_fetch(
     //     .await
     //     .map_err(|err| type_error(err.to_string()));
     // };
-    // let request_rid = resource_table
-    // .add(StringResource(String::from("hello")));
 
     let fut = request.send();
 
     let request_rid = resource_table
       .add(FetchRequestResource(Box::pin(fut)));
-
-      println!("request_rid: {}", request_rid);
 
     // let cancel_handle_rid = resource_table.add(FetchCancelHandle(cancel_handle));
 
@@ -279,6 +266,25 @@ pub async fn op_fetch(
         request_body_rid,
     })
 
+    // // let body = res.bytes().await.unwrap();
+
+    // let content_length = res.content_length();
+    // let stream: BytesStream = Box::pin(
+    //     res.bytes_stream()
+    //         .map(|r| r.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))),
+    // );
+    // let stream_reader = StreamReader::new(stream);
+    // let rid = resource_table.add(FetchResponseBodyResource2(stream_reader));
+
+    // Ok(FetchResponse {
+    //     status: status.as_u16(),
+    //     status_text: status.canonical_reason().unwrap_or("").to_string(),
+    //     headers: res_headers,
+    //     url,
+    //     request_body_rid: request_body_rid,
+    //     // body:body.to_vec(),
+    //     // body: ByteBuf::from(body),
+    // })
 }
 
 pub async fn op_fetch_send(
@@ -312,31 +318,7 @@ pub async fn op_fetch_send(
       r.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))
     }));
     let stream_reader = StreamReader::new(stream);
-    //create a tokio thread to read the stream
-    let (tx, rx) = mpsc::channel(1);
-    tokio::spawn(async move {
-        let mut stream_reader = stream_reader;
-        let mut tx = tx.clone();
-        loop {
-            // rx.recv().await;
-            let mut buf = [0; 1024];
-            let n = stream_reader.read(&mut buf).await.unwrap();
-            
-            let bytes = bytes::Bytes::copy_from_slice(&buf[..n]);
-            tx.send(Ok(bytes)).await.unwrap();
-            if n == 0 {
-                break;
-            }
-        }
-        // let mut buf = [0; 1024];
-        // read.read_exact(&mut buf).await?;
-
-
-    });
-    let rid = resource_table.add(FetchResponseBodyResource2(rx));
-    //
-
-    // let rid = resource_table.add(FetchResponseBodyResource2(stream_reader));
+    let rid = resource_table.add(FetchResponseBodyResource2(stream_reader));
     // let rid = resource_table
     //   .add(FetchResponseBodyResource {
     //     reader: AsyncRefCell::new(stream.peekable()),
@@ -366,8 +348,7 @@ type BytesStream =
 // type BytesStream =
 //   Pin<Box<dyn Stream<Item = Result<bytes::Bytes, std::io::Error>> + Unpin>>;
 // struct FetchResponseBodyResource2(BytesStream);
-struct FetchResponseBodyResource2(tokio::sync::mpsc::Receiver<Result<bytes::Bytes, std::io::Error>>);
-// struct FetchResponseBodyResource2(StreamReader<BytesStream, bytes::Bytes>);
+struct FetchResponseBodyResource2(StreamReader<BytesStream, bytes::Bytes>);
 
 impl Resource for FetchResponseBodyResource2 {
     fn name(&self) -> Cow<str> {
@@ -375,99 +356,260 @@ impl Resource for FetchResponseBodyResource2 {
     }
 }
 
-pub struct HttpClientResource {
+// type CancelableResponseResult = Result<Result<Response, anyhow::Error>, wkr_common::async_cancel::Canceled>;
+
+// struct FetchRequestResource(
+//   Pin<Box<dyn Future<Output = CancelableResponseResult>>>,
+// );
+
+// impl Resource for FetchRequestResource {
+//   fn name(&self) -> Cow<str> {
+//     "fetchRequest".into()
+//   }
+// }
+
+// struct FetchCancelHandle(Arc<CancelHandle>);
+
+// impl Resource for FetchCancelHandle {
+//   fn name(&self) -> Cow<str> {
+//     "fetchCancelHandle".into()
+//   }
+
+//   fn close(self: Arc<Self>) {
+//     self.0.cancel()
+//   }
+// }
+
+// pub struct FetchRequestBodyResource {
+//   body: AsyncRefCell<mpsc::Sender<std::io::Result<bytes::Bytes>>>,
+//   cancel: CancelHandle,
+// }
+
+// impl Resource for FetchRequestBodyResource {
+//   fn name(&self) -> Cow<str> {
+//     "fetchRequestBody".into()
+//   }
+
+//   fn write(self: Arc<Self>, buf: BufView) -> AsyncResult<WriteOutcome> {
+//     Box::pin(async move {
+//       let bytes: bytes::Bytes = buf.into();
+//       let nwritten = bytes.len();
+//       let body = RcRef::map(&self, |r| &r.body).borrow_mut().await;
+//       let cancel = RcRef::map(self, |r| &r.cancel);
+//       body.send(Ok(bytes)).or_cancel(cancel).await?.map_err(|_| {
+//         type_error("request body receiver not connected (request closed)")
+//       })?;
+//       Ok(WriteOutcome::Full { nwritten })
+//     })
+//   }
+
+//   fn close(self: Arc<Self>) {
+//     self.cancel.cancel()
+//   }
+// }
+
+// type BytesStream =
+//   Pin<Box<dyn Stream<Item = Result<bytes::Bytes, std::io::Error>> + Unpin+ Send+ Sync>>;
+
+// struct FetchResponseBodyResource {
+//   reader: AsyncRefCell<Peekable<BytesStream>>,
+//   cancel: CancelHandle,
+//   size: Option<u64>,
+// }
+
+// impl Resource for FetchResponseBodyResource {
+//   fn name(&self) -> Cow<str> {
+//     "fetchResponseBody".into()
+//   }
+
+//   fn read(self: Arc<Self>, limit: usize) -> AsyncResult<BufView> {
+//     Box::pin(async move {
+//       let reader = RcRef::map(&self, |r| &r.reader).borrow_mut().await;
+
+//       let fut = async move {
+//         let mut reader = Pin::new(reader);
+//         loop {
+//           match reader.as_mut().peek_mut().await {
+//             Some(Ok(chunk)) if !chunk.is_empty() => {
+//               let len = min(limit, chunk.len());
+//               let chunk = chunk.split_to(len);
+//               break Ok(chunk.into());
+//             }
+//             // This unwrap is safe because `peek_mut()` returned `Some`, and thus
+//             // currently has a peeked value that can be synchronously returned
+//             // from `next()`.
+//             //
+//             // The future returned from `next()` is always ready, so we can
+//             // safely call `await` on it without creating a race condition.
+//             Some(_) => match reader.as_mut().next().await.unwrap() {
+//               Ok(chunk) => assert!(chunk.is_empty()),
+//               Err(err) => break Err(type_error(err.to_string())),
+//             },
+//             None => break Ok(BufView::empty()),
+//           }
+//         }
+//       };
+
+//       let cancel_handle = RcRef::map(self, |r| &r.cancel);
+//       fut.try_or_cancel(cancel_handle).await
+//     })
+//   }
+
+//   fn size_hint(&self) -> (u64, Option<u64>) {
+//     (self.size.unwrap_or(0), self.size)
+//   }
+
+//   fn close(self: Arc<Self>) {
+//     self.cancel.cancel()
+//   }
+// }
+
+// impl Resource for FetchRequestBodyResource2 {
+//     fn name(&self) -> Cow<str> {
+//         "database".into()
+//     }
+// }
+
+// pub struct FetchRequestBodyResource {
+//     body: AsyncRefCell<Arc<mpsc::Sender<std::io::Result<Vec<u8>>>>>,
+//     cancel: CancelHandle,
+// }
+
+// impl Resource for FetchRequestBodyResource {
+//     fn name(&self) -> Cow<str> {
+//         "fetchRequestBody".into()
+//     }
+
+//     fn write(self: Arc<Self>, buf: Vec<u8>) -> AsyncResult<usize> {
+//         Box::pin(async move {
+//             let data = buf.to_vec();
+//             let len = data.len();
+//             let body = RcRef::map(&self, |r| &r.body).borrow_mut().await;
+//             let cancel = RcRef::map(self, |r| &r.cancel);
+//             body.send(Ok(data))
+//                 .or_cancel(cancel)
+//                 .await?
+//                 .map_err(|_| type_error("request body receiver not connected (request closed)"))?;
+
+//             Ok(len)
+//         })
+//     }
+
+//     fn close(self: Arc<Self>) {
+//         self.cancel.cancel()
+//     }
+// }
+
+// type BytesStream = Pin<Box<dyn Stream<Item = Result<bytes::Bytes, std::io::Error>> + Unpin>>;
+
+// struct FetchResponseBodyResource {
+//     reader: AsyncRefCell<StreamReader<BytesStream, bytes::Bytes>>,
+//     cancel: CancelHandle,
+// }
+
+// impl Resource for FetchResponseBodyResource {
+//     fn name(&self) -> Cow<str> {
+//         "fetchResponseBody".into()
+//     }
+
+//     fn read(self: Arc<Self>, mut buf: Vec<u8>) -> AsyncResult<usize> {
+//         Box::pin(async move {
+//             let mut reader = RcRef::map(&self, |r| &r.reader).borrow_mut().await;
+//             let cancel = RcRef::map(self, |r| &r.cancel);
+//             let read = reader.read(&mut buf).try_or_cancel(cancel).await?;
+//             Ok(read)
+//         })
+//     }
+
+//     fn close(self: Arc<Self>) {
+//         self.cancel.cancel()
+//     }
+// }
+
+struct HttpClientResource {
     client: Client,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FetchReadBody{
-    rid: ResourceId,
-    size: u64
-}
+// pub struct FetchRequestBodyResource {
+//     body: AsyncRefCell<mpsc::Sender<std::io::Result<bytes::Bytes>>>,
+//     cancel: CancelHandle,
+//   }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FetchReadBodyReturn{
-    #[serde(with = "serde_bytes")]
-    chunk: Vec<u8>,
-    size: u64,
-    rid: ResourceId,
-}
+//   impl Resource for FetchRequestBodyResource {
+//     fn name(&self) -> Cow<str> {
+//       "fetchRequestBody".into()
+//     }
 
+//     fn write(self: Rc<Self>, buf: BufView) -> AsyncResult<WriteOutcome> {
+//       Box::pin(async move {
+//         let bytes: bytes::Bytes = buf.into();
+//         let nwritten = bytes.len();
+//         let body = RcRef::map(&self, |r| &r.body).borrow_mut().await;
+//         let cancel = RcRef::map(self, |r| &r.cancel);
+//         body.send(Ok(bytes)).or_cancel(cancel).await?.map_err(|_| {
+//           type_error("request body receiver not connected (request closed)")
+//         })?;
+//         Ok(WriteOutcome::Full { nwritten })
+//       })
+//     }
 
+//     fn close(self: Rc<Self>) {
+//       self.cancel.cancel()
+//     }
+//   }
 
-pub async fn op_fetch_read_body(
-    mut resource_table: MutexGuard<'_, ResourceTable>,
-    args: FetchReadBody,
-  ) -> anyhow::Result<FetchReadBodyReturn> {
-    println!("op_fetch_read_body3333333: {}", args.rid);
-    let response_body = resource_table
-      .take::<FetchResponseBodyResource2>(args.rid)?;
-  
-    let mut response_body = Arc::try_unwrap(response_body)
-        .ok()
-        .expect("multiple op_fetch_read_body ongoing");
-    let mut response_body = response_body.0;
+//   type BytesStream =
+//     Pin<Box<dyn Stream<Item = Result<bytes::Bytes, std::io::Error>> + Unpin>>;
 
-    let bytes = response_body.recv().await.unwrap().unwrap();
-    println!("bytes!!!!!!!!!!: {}", bytes.len());
+//   struct FetchResponseBodyResource {
+//     reader: AsyncRefCell<Peekable<BytesStream>>,
+//     cancel: CancelHandle,
+//     size: Option<u64>,
+//   }
 
-    // // let buffer = &mut vec![];
-    // let response_body = &mut response_body.0;
-    // let mut chunk =    vec![0; args.size as usize];
-    // // let body = response_body.0.read_to_end(buffer).await?;
-    // let size = response_body.read(&mut chunk).await?;
+//   impl Resource for FetchResponseBodyResource {
+//     fn name(&self) -> Cow<str> {
+//       "fetchResponseBody".into()
+//     }
 
-    let rid = resource_table.add(FetchResponseBodyResource2(response_body));
-    // let rid = resource_table.add(response_body);
-    println!("op_fetch_read_body!!!!!!!!!!: {}", rid);
-  
-    Ok(FetchReadBodyReturn{
-        chunk: bytes.to_vec(),
-        size: bytes.len() as u64,
-        rid:rid
-    })
-  }
+//     fn read(self: Rc<Self>, limit: usize) -> AsyncResult<BufView> {
+//       Box::pin(async move {
+//         let reader = RcRef::map(&self, |r| &r.reader).borrow_mut().await;
 
+//         let fut = async move {
+//           let mut reader = Pin::new(reader);
+//           loop {
+//             match reader.as_mut().peek_mut().await {
+//               Some(Ok(chunk)) if !chunk.is_empty() => {
+//                 let len = min(limit, chunk.len());
+//                 let chunk = chunk.split_to(len);
+//                 break Ok(chunk.into());
+//               }
+//               // This unwrap is safe because `peek_mut()` returned `Some`, and thus
+//               // currently has a peeked value that can be synchronously returned
+//               // from `next()`.
+//               //
+//               // The future returned from `next()` is always ready, so we can
+//               // safely call `await` on it without creating a race condition.
+//               Some(_) => match reader.as_mut().next().await.unwrap() {
+//                 Ok(chunk) => assert!(chunk.is_empty()),
+//                 Err(err) => break Err(type_error(err.to_string())),
+//               },
+//               None => break Ok(BufView::empty()),
+//             }
+//           }
+//         };
 
+//         let cancel_handle = RcRef::map(self, |r| &r.cancel);
+//         fut.try_or_cancel(cancel_handle).await
+//       })
+//     }
 
+//     fn size_hint(&self) -> (u64, Option<u64>) {
+//       (self.size.unwrap_or(0), self.size)
+//     }
 
-  #[derive(Serialize, Deserialize, Debug)]
-pub struct FetchWriteBody{
-    rid: ResourceId,
-    #[serde(with = "serde_bytes")]
-    chunk: Vec<u8>,
-    size: u64
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FetchWriteBodyReturn{
-    size: u64,
-    rid: ResourceId,
-}
-  pub async fn op_fetch_write_body(
-    mut resource_table: MutexGuard<'_, ResourceTable>,
-    args: FetchWriteBody,
-  ) -> anyhow::Result<FetchWriteBodyReturn> {
-    println!("op_fetch_read_body3333333: {}", args.rid);
-    let resquest_body = resource_table
-      .take::<FetchRequestBodyResource2>(args.rid)?;
-  
-    let resquest_body = Arc::try_unwrap(resquest_body)
-        .ok()
-        .expect("multiple op_fetch_read_body ongoing");
-    let resquest_body = resquest_body.0;
-
-    let chunk = bytes::Bytes::copy_from_slice(&args.chunk);
-    let _bytes = resquest_body.send(Ok(chunk)).await.unwrap();
-    // println!("bytes!!!!!!!!!!: {}", bytes.len());
-
-
-    let rid = resource_table.add(FetchRequestBodyResource2(resquest_body));
-    // let rid = resource_table.add(resquest_body);
-    println!("op_fetch_read_body!!!!!!!!!!: {}", rid);
-  
-    Ok(FetchWriteBodyReturn{
-        size: args.size as u64,
-        rid:rid
-    })
-  }
+//     fn close(self: Rc<Self>) {
+//       self.cancel.cancel()
+//     }
+//   }
